@@ -7,6 +7,7 @@
   <style>
     :root { --bg1:#fff0f6; --bg2:#fff7e6; --text:#2b2b2b; }
     * { box-sizing: border-box; }
+
     body{
       margin:0; min-height:100vh; display:grid; place-items:center;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -14,6 +15,7 @@
       color: var(--text);
       overflow:hidden;
     }
+
     .card{
       width:min(680px, 92vw);
       background: rgba(255,255,255,0.85);
@@ -23,14 +25,22 @@
       text-align:center;
       box-shadow: 0 20px 60px rgba(0,0,0,0.10);
       backdrop-filter: blur(8px);
+      position: relative;
+      z-index: 2;
     }
+
     h1{ margin: 6px 0 14px; font-size: clamp(28px, 5vw, 44px); }
     p { margin: 0 0 22px; font-size: 16px; opacity: 0.85; }
+
     .btn-row{
-      display:flex; gap:14px; justify-content:center; flex-wrap:wrap;
+      display:flex;
+      gap:14px;
+      justify-content:center;
+      flex-wrap:wrap;
+      align-items:center;
       position:relative;
-      min-height:70px;
     }
+
     button, a.btn{
       border:0;
       border-radius: 999px;
@@ -40,10 +50,12 @@
       user-select:none;
       touch-action: manipulation;
     }
+
     a.btn{
       display:inline-flex; align-items:center; justify-content:center;
       text-decoration:none;
     }
+
     #yes{
       background: #ff4d8d;
       color:white;
@@ -52,22 +64,41 @@
       transition: transform 120ms ease;
     }
     #yes:active{ transform: scale(0.98); }
+
+    /* A guaranteed-visible arena for the "No" button */
+    #arena{
+      position: relative;
+      width: 220px;
+      height: 90px;
+      border-radius: 18px;
+      background: rgba(0,0,0,0.03);
+      border: 1px dashed rgba(0,0,0,0.12);
+      overflow: visible;
+    }
+
+    /* No button always lives inside #arena and never disappears */
     #no{
-    position: absolute;            /* changed */
-    left: 62%;
-    top: 0%;
-    transform: translate(-50%, 0);
-    background: #e9ecef;
-    color: #343a40;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.10);
-    z-index: 10;                   /* make sure it stays on top */
-  }
+      position: absolute;
+      left: 120px;
+      top: 45px;
+      transform: translate(-50%, -50%);
+      background: #e9ecef;
+      color: #343a40;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.10);
+      z-index: 5;
+
+      /* Smooth movement so it doesn't "blink" away */
+      transition: left 120ms ease, top 120ms ease;
+      will-change: left, top;
+    }
+
     .tiny{
       margin-top: 18px;
       font-size: 12px;
       opacity: 0.55;
     }
-    /* little floating hearts */
+
+    /* floating hearts */
     .heart{
       position:absolute;
       font-size: 18px;
@@ -75,6 +106,7 @@
       animation: floatUp linear infinite;
       user-select:none;
       pointer-events:none;
+      z-index: 1;
     }
     @keyframes floatUp{
       from { transform: translateY(20vh) scale(0.9); opacity:0; }
@@ -91,8 +123,10 @@
 
     <div class="btn-row">
       <a id="yes" class="btn" href="yes.html">Yes 💖</a>
-      <!-- “No” is a button so it looks legit -->
-      <button id="no" type="button">No 🙃</button>
+
+      <div id="arena" aria-hidden="true">
+        <button id="no" type="button">No 🙃</button>
+      </div>
     </div>
 
     <div class="tiny">Tip: try to click “No”. I dare you.</div>
@@ -115,64 +149,66 @@
     setInterval(spawnHeart, 320);
     for(let i=0;i<10;i++) spawnHeart();
 
-    // --- The dodging "No" button logic ---
+    // --- Dodging "No" button logic (always visible inside arena) ---
     const noBtn = document.getElementById("no");
+    const arena = document.getElementById("arena");
 
     function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
 
-    function moveNoButton(){
-    const padding = 14;
-  
-    // The "arena" is the card
-    const arena = document.querySelector(".card");
-    const a = arena.getBoundingClientRect();
-    const b = noBtn.getBoundingClientRect();
-  
-    // Random position within the card bounds (fully visible)
-    const maxX = a.width - b.width - padding;
-    const maxY = a.height - b.height - padding;
-  
-    const x = clamp(Math.random() * maxX, padding, maxX);
-    const y = clamp(Math.random() * maxY, padding, maxY);
-  
-    // Because #no is absolute, these coords are relative to the card
-    noBtn.style.left = x + "px";
-    noBtn.style.top  = y + "px";
-    noBtn.style.transform = "none";
-  }
+    function randomizeNoPosition(){
+      const padding = 10;
 
-    // Desktop: move when cursor gets close
-    const dangerRadius = 110; // how close is "too close"
-    window.addEventListener("mousemove", (e) => {
+      const a = arena.getBoundingClientRect();
+      const b = noBtn.getBoundingClientRect();
+
+      // Move within arena bounds (fully visible)
+      const maxX = a.width - b.width - padding;
+      const maxY = a.height - b.height - padding;
+
+      const x = clamp(Math.random() * maxX, padding, maxX);
+      const y = clamp(Math.random() * maxY, padding, maxY);
+
+      noBtn.style.left = x + "px";
+      noBtn.style.top  = y + "px";
+      noBtn.style.transform = "none";
+    }
+
+    // Place it immediately, then pick a random position after first paint
+    noBtn.style.left = "120px";
+    noBtn.style.top  = "45px";
+    noBtn.style.transform = "translate(-50%, -50%)";
+    requestAnimationFrame(() => randomizeNoPosition());
+
+    // Desktop: move when cursor gets close to the button (within arena)
+    const dangerRadius = 90;
+    arena.addEventListener("mousemove", (e) => {
       const r = noBtn.getBoundingClientRect();
       const bx = r.left + r.width/2;
       const by = r.top + r.height/2;
       const dx = e.clientX - bx;
       const dy = e.clientY - by;
       const dist = Math.hypot(dx, dy);
-      if (dist < dangerRadius) moveNoButton();
+      if (dist < dangerRadius) randomizeNoPosition();
     });
 
-    // Mobile: move if finger approaches OR tries to tap
-    window.addEventListener("touchstart", (e) => {
-      // If they touch anywhere near it, it runs away
+    // Mobile: if finger approaches the button, it moves
+    arena.addEventListener("touchstart", (e) => {
       const t = e.touches[0];
       const r = noBtn.getBoundingClientRect();
       const near =
-        t.clientX >= r.left - 40 && t.clientX <= r.right + 40 &&
-        t.clientY >= r.top - 40  && t.clientY <= r.bottom + 40;
-      if (near) moveNoButton();
+        t.clientX >= r.left - 30 && t.clientX <= r.right + 30 &&
+        t.clientY >= r.top - 30  && t.clientY <= r.bottom + 30;
+      if (near) randomizeNoPosition();
     }, { passive: true });
 
+    // If they somehow hit it, it escapes anyway
     noBtn.addEventListener("pointerdown", (e) => {
-      // If someone somehow hits it, it escapes anyway
       e.preventDefault();
-      moveNoButton();
+      randomizeNoPosition();
     });
 
-    // Place it somewhere fun on load
-    moveNoButton();
-    window.addEventListener("resize", moveNoButton);
+    // Re-randomize on resize (keeps it safely in-bounds)
+    window.addEventListener("resize", () => randomizeNoPosition());
   </script>
 </body>
 </html>
