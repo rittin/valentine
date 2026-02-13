@@ -3,26 +3,39 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>💞 Yay!</title>
+  <title>💘 Valentine?</title>
+
   <style>
+    :root { --bg1:#fff0f6; --bg2:#fff7e6; --text:#2b2b2b; }
+    * { box-sizing: border-box; }
+
     body{
       margin:0;
       min-height:100vh;
       display:grid;
       place-items:center;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: radial-gradient(circle at 80% 20%, #fff7e6, #fff0f6);
-      color:#2b2b2b;
-
-      overflow-x: hidden;  /* keep hearts/images from causing sideways scroll */
-      overflow-y: auto;    /* allow scroll if content is tall */
-      padding: 18px 0;
+      background: radial-gradient(circle at 20% 20%, var(--bg2), var(--bg1));
+      color: var(--text);
+      overflow: hidden;          /* no scrollbar */
       text-align:center;
     }
 
+    .card{
+      width:min(680px, 92vw);
+      background: rgba(255,255,255,0.85);
+      border: 1px solid rgba(0,0,0,0.06);
+      border-radius: 24px;
+      padding: 28px 22px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.10);
+      backdrop-filter: blur(8px);
+      position: relative;
+      z-index: 2;
+    }
+
     .photo{
-      width: min(560px, 90vw);
-      height: min(55vh, 460px); /* prevent image from pushing content off-screen */
+      width: min(520px, 88vw);
+      height: min(52vh, 420px);   /* ensures everything fits on one screen */
       object-fit: cover;
       border-radius: 18px;
       margin: 10px auto 18px;
@@ -30,30 +43,170 @@
       box-shadow: 0 14px 40px rgba(0,0,0,0.12);
     }
 
-    .card{
-      width:min(720px, 92vw);
-      background: rgba(255,255,255,0.88);
-      border: 1px solid rgba(0,0,0,0.06);
-      border-radius: 24px;
-      padding: 30px 22px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.10);
-      backdrop-filter: blur(8px);
-      margin: 10px 0;
+    h1{ margin: 6px 0 14px; font-size: clamp(28px, 5vw, 44px); }
+    p { margin: 0 0 22px; font-size: 16px; opacity: 0.85; }
+
+    .btn-row{
+      position: relative;
+      height: 90px;               /* the "play area" where No can move */
+      width: min(520px, 88vw);
+      margin: 0 auto;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 14px;
     }
 
-    h1{ margin: 6px 0 12px; font-size: clamp(26px, 5vw, 44px); }
-    p{ margin: 0; font-size: clamp(16px, 2.5vw, 20px); opacity:0.9; }
-    .kiss{ font-size: 54px; margin-top: 14px; }
-    .small{ margin-top: 16px; font-size: 13px; opacity:0.6; }
+    button, a.btn{
+      border:0;
+      border-radius: 999px;
+      padding: 14px 22px;
+      font-size: 18px;
+      cursor:pointer;
+      user-select:none;
+      touch-action: manipulation;
+      position: relative;
+      z-index: 3;
+    }
+
+    a.btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      text-decoration:none;
+    }
+
+    #yes{
+      background: #ff4d8d;
+      color:white;
+      box-shadow: 0 10px 30px rgba(255,77,141,0.35);
+      transition: transform 120ms ease;
+    }
+    #yes:active{ transform: scale(0.98); }
+
+    /* No floats inside .btn-row (no visible box) */
+    #no{
+      position: absolute;
+      left: 75%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      background: #e9ecef;
+      color: #343a40;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.10);
+      z-index: 4;
+
+      transition: left 120ms ease, top 120ms ease;
+      will-change: left, top;
+    }
+
+    .tiny{
+      margin-top: 16px;
+      font-size: 12px;
+      opacity: 0.55;
+    }
+
+    /* floating hearts */
+    .heart{
+      position:absolute;
+      font-size: 18px;
+      opacity: 0.35;
+      animation: floatUp linear infinite;
+      user-select:none;
+      pointer-events:none;
+      z-index: 1;
+    }
+    @keyframes floatUp{
+      from { transform: translateY(15vh) scale(0.9); opacity:0; }
+      15% { opacity:0.35; }
+      to { transform: translateY(-120vh) scale(1.2); opacity:0; }
+    }
   </style>
 </head>
+
 <body>
-  <div class="card">
-    <img class="photo" src="yes.jpg" alt="I love you ❤️" />
-    <h1>I knew you wouldn’t be able to say no to this 💘</h1>
-    <p>Happy Valentine’s Day, Janine.</p>
-    <div class="kiss">💋</div>
-    <div class="small">(Dinner at Chat Bar 😉)</div>
+  <div class="card" aria-live="polite">
+    <img class="photo" src="welcome.jpg" alt="Us ❤️" />
+    <h1>Will you be my Valentine? 💘</h1>
+    <p>(There is a correct answer. Choose wisely 😄)</p>
+
+    <div class="btn-row" id="playArea">
+      <a id="yes" class="btn" href="yes.html">Yes 💖</a>
+      <button id="no" type="button">No 🙃</button>
+    </div>
+
+    <div class="tiny">Tip: try to click “No”. I dare you.</div>
   </div>
+
+  <script>
+    // --- Floating hearts background ---
+    const heartChars = ["💗","💖","💘","💕","💞"];
+    function spawnHeart(){
+      const el = document.createElement("div");
+      el.className = "heart";
+      el.textContent = heartChars[Math.floor(Math.random()*heartChars.length)];
+      el.style.left = Math.random() * 100 + "vw";
+      el.style.bottom = (-10 - Math.random()*20) + "vh";
+      el.style.animationDuration = (6 + Math.random()*8) + "s";
+      el.style.fontSize = (14 + Math.random()*18) + "px";
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 14000);
+    }
+    setInterval(spawnHeart, 360);
+    for(let i=0;i<10;i++) spawnHeart();
+
+    // --- Dodging "No" button logic (always visible inside playArea) ---
+    const noBtn = document.getElementById("no");
+    const playArea = document.getElementById("playArea");
+
+    function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
+    function randomizeNoPosition(){
+      const padding = 8;
+
+      const a = playArea.getBoundingClientRect();
+      const b = noBtn.getBoundingClientRect();
+
+      const maxX = a.width - b.width - padding;
+      const maxY = a.height - b.height - padding;
+
+      const x = clamp(Math.random() * maxX, padding, maxX);
+      const y = clamp(Math.random() * maxY, padding, maxY);
+
+      noBtn.style.left = x + "px";
+      noBtn.style.top  = y + "px";
+      noBtn.style.transform = "none";
+    }
+
+    // Place it immediately after first paint
+    requestAnimationFrame(() => randomizeNoPosition());
+
+    // Desktop: move when cursor gets close
+    const dangerRadius = 90;
+    playArea.addEventListener("mousemove", (e) => {
+      const r = noBtn.getBoundingClientRect();
+      const bx = r.left + r.width/2;
+      const by = r.top + r.height/2;
+      const dist = Math.hypot(e.clientX - bx, e.clientY - by);
+      if (dist < dangerRadius) randomizeNoPosition();
+    });
+
+    // Mobile: move if finger approaches
+    playArea.addEventListener("touchstart", (e) => {
+      const t = e.touches[0];
+      const r = noBtn.getBoundingClientRect();
+      const near =
+        t.clientX >= r.left - 30 && t.clientX <= r.right + 30 &&
+        t.clientY >= r.top - 30  && t.clientY <= r.bottom + 30;
+      if (near) randomizeNoPosition();
+    }, { passive: true });
+
+    // If they somehow hit it, it escapes anyway
+    noBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      randomizeNoPosition();
+    });
+
+    window.addEventListener("resize", randomizeNoPosition);
+  </script>
 </body>
 </html>
