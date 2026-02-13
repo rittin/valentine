@@ -93,11 +93,11 @@
     }
     #yes:active{ transform: scale(0.98); }
 
-    /* NO: fixed + centered positioning (we clamp its center to stay visible) */
+    /* NO: fixed with center anchoring so left/top represent its center */
     #no{
       position: fixed;
-      left: 70vw;              /* safe initial */
-      top: 72vh;               /* safe initial */
+      left: 50vw;                 /* guaranteed visible immediately */
+      top: 75vh;
       transform: translate(-50%, -50%);
       background: #e9ecef;
       color: #343a40;
@@ -163,44 +163,89 @@
     setInterval(spawnHeart, 420);
     for(let i=0;i<10;i++) spawnHeart();
 
-    // --- NO logic: roam whole viewport, always visible, NEVER cover YES ---
+    // --- Conservative NO movement: only to safe anchor points; never off-screen; never on YES ---
     const noBtn = document.getElementById("no");
     const yesBtn = document.getElementById("yes");
 
-    function clamp(n, min, max){
-      if (!Number.isFinite(n)) return min;
-      return Math.max(min, Math.min(max, n));
-    }
-
+    function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
     function rectsOverlap(a, b){
       return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
     }
 
-    // Prefer visualViewport if present; otherwise use documentElement client size (more stable on desktop)
-    function getViewport(){
+    function viewport(){
       const vv = window.visualViewport;
       if (vv && Number.isFinite(vv.width) && Number.isFinite(vv.height)) {
         return { left: vv.offsetLeft || 0, top: vv.offsetTop || 0, width: vv.width, height: vv.height };
       }
+      // Desktop-stable:
       return { left: 0, top: 0, width: document.documentElement.clientWidth, height: document.documentElement.clientHeight };
     }
 
-    function placeNoAt(xCenter, yCenter){
-      noBtn.style.left = xCenter + "px";
-      noBtn.style.top  = yCenter + "px";
-      // keep transform translate(-50%, -50%) so left/top are the center point
+    // Place by CENTER coordinates (left/top is the center because of translate(-50%, -50%))
+    function placeCenter(x, y){
+      noBtn.style.left = x + "px";
+      noBtn.style.top  = y + "px";
       noBtn.style.transform = "translate(-50%, -50%)";
     }
 
-    function moveNoButton(){
-      const vp = getViewport();
-      const padding = 14;
+    function getNoRect(){ return noBtn.getBoundingClientRect(); }
 
-      const noRect = noBtn.getBoundingClientRect();
+    // Decide whether NO is fully visible in the viewport (not clipped)
+    function isFullyVisible(){
+      const vp = viewport();
+      const r = getNoRect();
+      const leftOk = r.left >= vp.left;
+      const topOk = r.top >= vp.top;
+      const rightOk = r.right <= vp.left + vp.width;
+      const bottomOk = r.bottom <= vp.top + vp.height;
+      return leftOk && topOk && rightOk && bottomOk;
+    }
+
+    function clampCenterIntoViewport(x, y){
+      const vp = viewport();
+      const r = getNoRect();
+      const halfW = Math.max(1, r.width / 2);
+      const halfH = Math.max(1, r.height / 2);
+      const pad = 12;
+
+      const minX = vp.left + pad + halfW;
+      const maxX = vp.left + vp.width - pad - halfW;
+      const minY = vp.top + pad + halfH;
+      const maxY = vp.top + vp.height - pad - halfH;
+
+      // If something is weird, just center it.
+      if (!(maxX > minX) || !(maxY > minY)) {
+        return { x: vp.left + vp.width * 0.5, y: vp.top + vp.height * 0.7 };
+      }
+
+      return { x: clamp(x, minX, maxX), y: clamp(y, minY, maxY) };
+    }
+
+    function safeTargets(){
+      const vp = viewport();
+      const r = getNoRect();
+      const halfW = Math.max(1, r.width / 2);
+      const halfH = Math.max(1, r.height / 2);
+
+      // Safe anchors: corners/edges (CENTER points), with generous inset
+      const insetX = Math.max(halfW + 18, 70);
+      const insetY = Math.max(halfH + 18, 80);
+
+      return [
+        { x: vp.left + insetX,                 y: vp.top + insetY },                     // top-left
+        { x: vp.left + vp.width - insetX,      y: vp.top + insetY },                     // top-right
+        { x: vp.left + insetX,                 y: vp.top + vp.height - insetY },         // bottom-left
+        { x: vp.left + vp.width - insetX,      y: vp.top + vp.height - insetY },         // bottom-right
+        { x: vp.left + vp.width * 0.5,         y: vp.top + insetY },                     // top-center
+        { x: vp.left + vp.width * 0.5,         y: vp.top + vp.height - insetY },         // bottom-center
+        { x: vp.left + insetX,                 y: vp.top + vp.height * 0.5 },            // left-center
+        { x: vp.left + vp.width - insetX,      y: vp.top + vp.height * 0.5 },            // right-center
+      ];
+    }
+
+    function moveNoConservatively(){
       const yesRect = yesBtn.getBoundingClientRect();
-
-      // "No-go" zone around YES (expanded)
-      const noGoPad = 28;
+      const noGoPad = 30;
       const noGo = {
         left: yesRect.left - noGoPad,
         right: yesRect.right + noGoPad,
@@ -208,98 +253,97 @@
         bottom: yesRect.bottom + noGoPad,
       };
 
-      const halfW = Math.max(1, noRect.width / 2);
-      const halfH = Math.max(1, noRect.height / 2);
-
-      // Clamp the CENTER of the No button so it's always fully visible
-      const minX = vp.left + padding + halfW;
-      const maxX = vp.left + vp.width - padding - halfW;
-      const minY = vp.top + padding + halfH;
-      const maxY = vp.top + vp.height - padding - halfH;
-
-      // If viewport is too small, force to center
-      if (!(maxX > minX) || !(maxY > minY)) {
-        placeNoAt(vp.left + vp.width * 0.7, vp.top + vp.height * 0.75);
-        return;
+      const targets = safeTargets();
+      // Shuffle targets for variety
+      for (let i = targets.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [targets[i], targets[j]] = [targets[j], targets[i]];
       }
 
-      // Try multiple random spots until it's outside the YES no-go zone
-      for (let i = 0; i < 80; i++) {
-        const x = clamp(minX + Math.random() * (maxX - minX), minX, maxX);
-        const y = clamp(minY + Math.random() * (maxY - minY), minY, maxY);
+      // Pick the first target that doesn't overlap YES no-go zone
+      for (const t of targets) {
+        const clamped = clampCenterIntoViewport(t.x, t.y);
+        placeCenter(clamped.x, clamped.y);
 
-        const candidate = {
-          left: x - halfW,
-          right: x + halfW,
-          top: y - halfH,
-          bottom: y + halfH
-        };
-
-        if (!rectsOverlap(candidate, noGo)) {
-          placeNoAt(x, y);
-          return;
-        }
+        const r = getNoRect();
+        const cand = { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+        if (!rectsOverlap(cand, noGo)) return;
       }
 
-      // Fallback: bottom-left-ish (still clamped)
-      placeNoAt(minX, maxY);
+      // Absolute fallback: bottom-right clamped
+      const vp = viewport();
+      const fallback = clampCenterIntoViewport(vp.left + vp.width * 0.8, vp.top + vp.height * 0.8);
+      placeCenter(fallback.x, fallback.y);
     }
 
-    // Make sure it's visible immediately, then re-clamp as layout settles
-    function stabilizePlacement(){
-      // guaranteed visible fallback first
-      const vp = getViewport();
-      placeNoAt(vp.left + vp.width * 0.72, vp.top + vp.height * 0.78);
-
-      // then clamp a few times as the page finishes painting/loading
-      requestAnimationFrame(moveNoButton);
-      setTimeout(moveNoButton, 80);
-      setTimeout(moveNoButton, 250);
-      setTimeout(moveNoButton, 600);
+    // Watchdog: if NO ever ends up offscreen, snap it back
+    function ensureVisibleNow(){
+      if (!isFullyVisible()) {
+        moveNoConservatively();
+      }
     }
 
-    // Run on start
-    stabilizePlacement();
+    // Initial guaranteed visible placement (before any math)
+    (function init(){
+      const vp = viewport();
+      const start = clampCenterIntoViewport(vp.left + vp.width * 0.75, vp.top + vp.height * 0.78);
+      placeCenter(start.x, start.y);
+    })();
 
-    // Run again after the image loads (important on refresh)
+    // Stabilize after layout settles (most refresh issues are here)
+    function stabilize(){
+      moveNoConservatively();
+      ensureVisibleNow();
+      setTimeout(ensureVisibleNow, 60);
+      setTimeout(ensureVisibleNow, 200);
+      setTimeout(ensureVisibleNow, 600);
+    }
+
+    requestAnimationFrame(stabilize);
+    window.addEventListener("load", stabilize);
+
     const img = document.querySelector(".photo");
-    if (img && !img.complete) img.addEventListener("load", stabilizePlacement);
+    if (img && !img.complete) img.addEventListener("load", stabilize);
 
-    // Run after everything loads
-    window.addEventListener("load", stabilizePlacement);
-
-    // Re-clamp on viewport changes
-    window.addEventListener("resize", moveNoButton);
+    window.addEventListener("resize", () => { stabilize(); });
     if (window.visualViewport) {
-      window.visualViewport.addEventListener("resize", moveNoButton);
-      window.visualViewport.addEventListener("scroll", moveNoButton);
+      window.visualViewport.addEventListener("resize", stabilize);
+      window.visualViewport.addEventListener("scroll", () => { ensureVisibleNow(); });
     }
 
     // Desktop: move when cursor gets close
     const dangerRadius = 140;
     window.addEventListener("mousemove", (e) => {
-      const r = noBtn.getBoundingClientRect();
+      const r = getNoRect();
       const bx = r.left + r.width/2;
       const by = r.top + r.height/2;
       const dist = Math.hypot(e.clientX - bx, e.clientY - by);
-      if (dist < dangerRadius) moveNoButton();
+      if (dist < dangerRadius) moveNoConservatively();
     });
 
-    // Mobile: move if finger approaches
+    // Mobile: if finger approaches, it moves
     window.addEventListener("touchstart", (e) => {
       const t = e.touches[0];
-      const r = noBtn.getBoundingClientRect();
+      const r = getNoRect();
       const near =
         t.clientX >= r.left - 40 && t.clientX <= r.right + 40 &&
         t.clientY >= r.top - 40  && t.clientY <= r.bottom + 40;
-      if (near) moveNoButton();
+      if (near) moveNoConservatively();
     }, { passive: true });
 
     // If they somehow hit it, it escapes anyway
     noBtn.addEventListener("pointerdown", (e) => {
       e.preventDefault();
-      moveNoButton();
+      moveNoConservatively();
     });
+
+    // Short watchdog window after refresh (covers weird initial paint cases)
+    let checks = 0;
+    const watchdog = setInterval(() => {
+      ensureVisibleNow();
+      checks++;
+      if (checks > 25) clearInterval(watchdog); // ~2.5 seconds total
+    }, 100);
   </script>
 </body>
 </html>
