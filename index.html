@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>💘 Valentine?</title>
+
   <style>
     :root { --bg1:#fff0f6; --bg2:#fff7e6; --text:#2b2b2b; }
     * { box-sizing: border-box; }
@@ -16,9 +17,7 @@
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       background: radial-gradient(circle at 20% 20%, var(--bg2), var(--bg1));
       color: var(--text);
-      overflow-x: hidden;   /* prevent sideways scroll from hearts */
-      overflow-y: auto;     /* allow scrolling if card is taller than viewport */
-      padding: 18px 0;      /* breathing room */
+      overflow: hidden;          /* no scrollbar */
       text-align:center;
     }
 
@@ -32,13 +31,12 @@
       backdrop-filter: blur(8px);
       position: relative;
       z-index: 2;
-      margin: 10px 0;
     }
 
     .photo{
       width: min(520px, 88vw);
-      height: min(55vh, 420px); /* keep image from pushing buttons off-screen */
-      object-fit: cover;        /* crop nicely instead of stretching */
+      height: min(52vh, 420px);   /* ensures everything fits on one screen */
+      object-fit: cover;
       border-radius: 18px;
       margin: 10px auto 18px;
       display: block;
@@ -49,12 +47,14 @@
     p { margin: 0 0 22px; font-size: 16px; opacity: 0.85; }
 
     .btn-row{
+      position: relative;
+      height: 90px;               /* the "play area" where No can move */
+      width: min(520px, 88vw);
+      margin: 0 auto;
       display:flex;
-      gap:14px;
-      justify-content:center;
-      flex-wrap:wrap;
       align-items:center;
-      position:relative;
+      justify-content:center;
+      gap: 14px;
     }
 
     button, a.btn{
@@ -65,6 +65,8 @@
       cursor:pointer;
       user-select:none;
       touch-action: manipulation;
+      position: relative;
+      z-index: 3;
     }
 
     a.btn{
@@ -78,40 +80,27 @@
       background: #ff4d8d;
       color:white;
       box-shadow: 0 10px 30px rgba(255,77,141,0.35);
-      transform: translateZ(0);
       transition: transform 120ms ease;
     }
     #yes:active{ transform: scale(0.98); }
 
-    /* A guaranteed-visible arena for the "No" button */
-    #arena{
-      position: relative;
-      width: 220px;
-      height: 90px;
-      border-radius: 18px;
-      background: rgba(0,0,0,0.03);
-      border: 1px dashed rgba(0,0,0,0.12);
-      overflow: visible;
-    }
-
-    /* No button always lives inside #arena and never disappears */
+    /* No floats inside .btn-row (no visible box) */
     #no{
       position: absolute;
-      left: 120px;
-      top: 45px;
+      left: 75%;
+      top: 50%;
       transform: translate(-50%, -50%);
       background: #e9ecef;
       color: #343a40;
       box-shadow: 0 10px 25px rgba(0,0,0,0.10);
-      z-index: 5;
+      z-index: 4;
 
-      /* Smooth movement so it doesn't "blink" away */
       transition: left 120ms ease, top 120ms ease;
       will-change: left, top;
     }
 
     .tiny{
-      margin-top: 18px;
+      margin-top: 16px;
       font-size: 12px;
       opacity: 0.55;
     }
@@ -127,7 +116,7 @@
       z-index: 1;
     }
     @keyframes floatUp{
-      from { transform: translateY(20vh) scale(0.9); opacity:0; }
+      from { transform: translateY(15vh) scale(0.9); opacity:0; }
       15% { opacity:0.35; }
       to { transform: translateY(-120vh) scale(1.2); opacity:0; }
     }
@@ -140,12 +129,9 @@
     <h1>Will you be my Valentine? 💘</h1>
     <p>(There is a correct answer. Choose wisely 😄)</p>
 
-    <div class="btn-row">
+    <div class="btn-row" id="playArea">
       <a id="yes" class="btn" href="yes.html">Yes 💖</a>
-
-      <div id="arena" aria-hidden="true">
-        <button id="no" type="button">No 🙃</button>
-      </div>
+      <button id="no" type="button">No 🙃</button>
     </div>
 
     <div class="tiny">Tip: try to click “No”. I dare you.</div>
@@ -165,22 +151,21 @@
       document.body.appendChild(el);
       setTimeout(() => el.remove(), 14000);
     }
-    setInterval(spawnHeart, 320);
+    setInterval(spawnHeart, 360);
     for(let i=0;i<10;i++) spawnHeart();
 
-    // --- Dodging "No" button logic (always visible inside arena) ---
+    // --- Dodging "No" button logic (always visible inside playArea) ---
     const noBtn = document.getElementById("no");
-    const arena = document.getElementById("arena");
+    const playArea = document.getElementById("playArea");
 
     function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
 
     function randomizeNoPosition(){
-      const padding = 10;
+      const padding = 8;
 
-      const a = arena.getBoundingClientRect();
+      const a = playArea.getBoundingClientRect();
       const b = noBtn.getBoundingClientRect();
 
-      // Move within arena bounds (fully visible)
       const maxX = a.width - b.width - padding;
       const maxY = a.height - b.height - padding;
 
@@ -192,26 +177,21 @@
       noBtn.style.transform = "none";
     }
 
-    // Place it immediately, then pick a random position after first paint
-    noBtn.style.left = "120px";
-    noBtn.style.top  = "45px";
-    noBtn.style.transform = "translate(-50%, -50%)";
+    // Place it immediately after first paint
     requestAnimationFrame(() => randomizeNoPosition());
 
-    // Desktop: move when cursor gets close to the button (within arena)
+    // Desktop: move when cursor gets close
     const dangerRadius = 90;
-    arena.addEventListener("mousemove", (e) => {
+    playArea.addEventListener("mousemove", (e) => {
       const r = noBtn.getBoundingClientRect();
       const bx = r.left + r.width/2;
       const by = r.top + r.height/2;
-      const dx = e.clientX - bx;
-      const dy = e.clientY - by;
-      const dist = Math.hypot(dx, dy);
+      const dist = Math.hypot(e.clientX - bx, e.clientY - by);
       if (dist < dangerRadius) randomizeNoPosition();
     });
 
-    // Mobile: if finger approaches the button, it moves
-    arena.addEventListener("touchstart", (e) => {
+    // Mobile: move if finger approaches
+    playArea.addEventListener("touchstart", (e) => {
       const t = e.touches[0];
       const r = noBtn.getBoundingClientRect();
       const near =
@@ -226,8 +206,7 @@
       randomizeNoPosition();
     });
 
-    // Re-randomize on resize (keeps it safely in-bounds)
-    window.addEventListener("resize", () => randomizeNoPosition());
+    window.addEventListener("resize", randomizeNoPosition);
   </script>
 </body>
 </html>
