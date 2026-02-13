@@ -53,15 +53,15 @@
     }
     #yes:active{ transform: scale(0.98); }
     #no{
-    position: fixed;
-    left: 50%;
-    top: 62%;
-    transform: translate(-50%, -50%);
+    position: absolute;            /* changed */
+    left: 62%;
+    top: 0%;
+    transform: translate(-50%, 0);
     background: #e9ecef;
     color: #343a40;
     box-shadow: 0 10px 25px rgba(0,0,0,0.10);
-    z-index: 9999; /* <- add this */
-    }
+    z-index: 10;                   /* make sure it stays on top */
+  }
     .tiny{
       margin-top: 18px;
       font-size: 12px;
@@ -121,20 +121,25 @@
     function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
 
     function moveNoButton(){
-      const padding = 14;
-      const rect = noBtn.getBoundingClientRect();
-
-      // Keep fully on-screen
-      const maxX = window.innerWidth - rect.width - padding;
-      const maxY = window.innerHeight - rect.height - padding;
-
-      const x = clamp(Math.random() * maxX, padding, maxX);
-      const y = clamp(Math.random() * maxY, padding, maxY);
-
-      noBtn.style.left = x + "px";
-      noBtn.style.top  = y + "px";
-      noBtn.style.transform = "none";
-    }
+    const padding = 14;
+  
+    // The "arena" is the card
+    const arena = document.querySelector(".card");
+    const a = arena.getBoundingClientRect();
+    const b = noBtn.getBoundingClientRect();
+  
+    // Random position within the card bounds (fully visible)
+    const maxX = a.width - b.width - padding;
+    const maxY = a.height - b.height - padding;
+  
+    const x = clamp(Math.random() * maxX, padding, maxX);
+    const y = clamp(Math.random() * maxY, padding, maxY);
+  
+    // Because #no is absolute, these coords are relative to the card
+    noBtn.style.left = x + "px";
+    noBtn.style.top  = y + "px";
+    noBtn.style.transform = "none";
+  }
 
     // Desktop: move when cursor gets close
     const dangerRadius = 110; // how close is "too close"
