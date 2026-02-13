@@ -1,3 +1,4 @@
+<!-- index.html -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -11,14 +12,16 @@
 
     body{
       margin:0;
-      min-height:100vh;
+      min-height:100svh;            /* better on mobile than 100vh */
       display:grid;
       place-items:center;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       background: radial-gradient(circle at 20% 20%, var(--bg2), var(--bg1));
       color: var(--text);
-      overflow:hidden;
+      overflow:hidden;              /* no scroll */
       text-align:center;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right)
+               env(safe-area-inset-bottom) env(safe-area-inset-left);
     }
 
     .card{
@@ -26,41 +29,52 @@
       background: rgba(255,255,255,0.85);
       border: 1px solid rgba(0,0,0,0.06);
       border-radius: 24px;
-      padding: 22px 18px;
+      padding: 16px 16px;           /* tighter so tip fits */
       box-shadow: 0 20px 60px rgba(0,0,0,0.10);
       backdrop-filter: blur(8px);
       position: relative;
       z-index: 2;
     }
 
+    /* Keep the photo inside the card and avoid overflow on short screens */
     .photo{
       width: 100%;
       max-width: 560px;
-      height: min(38vh, 360px);   /* smaller on phones */
+      height: min(34svh, 320px);    /* smaller so everything fits with no scroll */
       object-fit: cover;
       border-radius: 18px;
-      margin: 6px auto 14px;
+      margin: 6px auto 10px;
       display:block;
       box-shadow: 0 14px 40px rgba(0,0,0,0.12);
     }
 
-    h1{ margin: 6px 0 10px; font-size: clamp(26px, 5.6vw, 44px); line-height: 1.05; }
-    p { margin: 0 0 14px; font-size: 15px; opacity: 0.85; }
-
-    /* Keep YES always visible and centered */
-    .yes-row{
-      display:flex;
-      justify-content:center;
-      margin: 6px 0 8px;
-      position: relative;
-      z-index: 5; /* above wandering No */
+    h1{
+      margin: 4px 0 8px;
+      font-size: clamp(24px, 5.6vw, 44px);
+      line-height: 1.05;
+    }
+    p{
+      margin: 0 0 10px;
+      font-size: 14px;
+      opacity: 0.85;
     }
 
-    a.btn, button{
+    .btn-row{
+      display:flex;
+      gap:12px;
+      justify-content:center;
+      flex-wrap:wrap;
+      align-items:center;
+      position:relative;
+      z-index: 5;
+      margin-bottom: 6px;
+    }
+
+    button, a.btn{
       border:0;
       border-radius: 999px;
-      padding: 14px 22px;
-      font-size: 18px;
+      padding: 12px 20px;           /* slightly smaller for mobile */
+      font-size: 17px;
       cursor:pointer;
       user-select:none;
       touch-action: manipulation;
@@ -81,29 +95,22 @@
     }
     #yes:active{ transform: scale(0.98); }
 
-    /* No roams inside a big invisible play zone UNDER the YES row */
-    #playZone{
-      position: relative;
-      width: min(560px, 88vw);
-      height: 120px;              /* big enough to feel “free” */
-      margin: 0 auto;
-    }
-
+    /* NO: free roaming on the entire viewport */
     #no{
-      position: absolute;
-      left: 70%;
-      top: 55%;
+      position: fixed;
+      left: 70vw;
+      top: 75svh;
       transform: translate(-50%, -50%);
       background: #e9ecef;
       color: #343a40;
       box-shadow: 0 10px 25px rgba(0,0,0,0.10);
-      z-index: 4;
+      z-index: 9999;
       transition: left 120ms ease, top 120ms ease;
       will-change: left, top;
     }
 
     .tiny{
-      margin-top: 10px;
+      margin-top: 6px;              /* tighter spacing so it stays visible */
       font-size: 12px;
       opacity: 0.55;
     }
@@ -112,16 +119,16 @@
     .heart{
       position:absolute;
       font-size: 18px;
-      opacity: 0.30;
+      opacity: 0.28;
       animation: floatUp linear infinite;
       user-select:none;
       pointer-events:none;
       z-index: 1;
     }
     @keyframes floatUp{
-      from { transform: translateY(15vh) scale(0.9); opacity:0; }
-      15% { opacity:0.30; }
-      to { transform: translateY(-120vh) scale(1.2); opacity:0; }
+      from { transform: translateY(15svh) scale(0.9); opacity:0; }
+      15% { opacity:0.28; }
+      to { transform: translateY(-120svh) scale(1.2); opacity:0; }
     }
   </style>
 </head>
@@ -132,14 +139,11 @@
     <h1>Will you be my Valentine? 💘</h1>
     <p>(There is a correct answer. Choose wisely 😄)</p>
 
-    <div class="yes-row">
+    <div class="btn-row">
       <a id="yes" class="btn" href="yes.html">Yes 💖</a>
     </div>
 
-    <!-- Big invisible area where NO can roam without ever covering YES -->
-    <div id="playZone" aria-hidden="true">
-      <button id="no" type="button">No 🙃</button>
-    </div>
+    <button id="no" type="button">No 🙃</button>
 
     <div class="tiny">Tip: try to click “No”. I dare you.</div>
   </div>
@@ -161,57 +165,93 @@
     setInterval(spawnHeart, 420);
     for(let i=0;i<10;i++) spawnHeart();
 
-    // --- Dodging NO inside playZone (big area, always visible, never blocks YES) ---
+    // --- Dodging NO: roam whole viewport, always visible, NEVER cover YES ---
     const noBtn = document.getElementById("no");
-    const playZone = document.getElementById("playZone");
+    const yesBtn = document.getElementById("yes");
 
     function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+    function rectsOverlap(a, b){
+      return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
+    }
 
-    function randomizeNoPosition(){
-      const padding = 10;
+    function moveNoButton(){
+      const padding = 14;
 
-      const z = playZone.getBoundingClientRect();
-      const b = noBtn.getBoundingClientRect();
+      // Keep out of the very top/bottom UI on phones
+      const safeTop = 80;
+      const safeBottom = 24;
 
-      const maxX = z.width - b.width - padding;
-      const maxY = z.height - b.height - padding;
+      const noRect = noBtn.getBoundingClientRect();
+      const yesRect = yesBtn.getBoundingClientRect();
 
-      const x = clamp(Math.random() * maxX, padding, maxX);
-      const y = clamp(Math.random() * maxY, padding, maxY);
+      // Expand YES "no-go" zone so No can't sit on/near it
+      const noGoPad = 26;
+      const noGo = {
+        left: yesRect.left - noGoPad,
+        right: yesRect.right + noGoPad,
+        top: yesRect.top - noGoPad,
+        bottom: yesRect.bottom + noGoPad,
+      };
 
-      noBtn.style.left = x + "px";
-      noBtn.style.top  = y + "px";
+      const maxX = window.innerWidth - noRect.width - padding;
+      const maxY = window.innerHeight - noRect.height - padding;
+
+      for(let i=0; i<50; i++){
+        const x = clamp(Math.random() * maxX, padding, maxX);
+        const y = clamp(
+          safeTop + Math.random() * (maxY - safeTop - safeBottom),
+          safeTop,
+          maxY - safeBottom
+        );
+
+        const candidate = {
+          left: x,
+          top: y,
+          right: x + noRect.width,
+          bottom: y + noRect.height
+        };
+
+        if (!rectsOverlap(candidate, noGo)){
+          noBtn.style.left = x + "px";
+          noBtn.style.top  = y + "px";
+          noBtn.style.transform = "none";
+          return;
+        }
+      }
+
+      // Fallback: shove it away from YES
+      noBtn.style.left = padding + "px";
+      noBtn.style.top  = (maxY - safeBottom) + "px";
       noBtn.style.transform = "none";
     }
 
-    requestAnimationFrame(() => randomizeNoPosition());
+    requestAnimationFrame(() => moveNoButton());
+    window.addEventListener("resize", () => moveNoButton());
 
     // Desktop: move when cursor gets close
-    const dangerRadius = 120;
-    playZone.addEventListener("mousemove", (e) => {
+    const dangerRadius = 130;
+    window.addEventListener("mousemove", (e) => {
       const r = noBtn.getBoundingClientRect();
       const bx = r.left + r.width/2;
       const by = r.top + r.height/2;
       const dist = Math.hypot(e.clientX - bx, e.clientY - by);
-      if (dist < dangerRadius) randomizeNoPosition();
+      if (dist < dangerRadius) moveNoButton();
     });
 
     // Mobile: if finger approaches, it moves
-    playZone.addEventListener("touchstart", (e) => {
+    window.addEventListener("touchstart", (e) => {
       const t = e.touches[0];
       const r = noBtn.getBoundingClientRect();
       const near =
         t.clientX >= r.left - 40 && t.clientX <= r.right + 40 &&
         t.clientY >= r.top - 40  && t.clientY <= r.bottom + 40;
-      if (near) randomizeNoPosition();
+      if (near) moveNoButton();
     }, { passive: true });
 
     noBtn.addEventListener("pointerdown", (e) => {
       e.preventDefault();
-      randomizeNoPosition();
+      moveNoButton();
     });
-
-    window.addEventListener("resize", randomizeNoPosition);
   </script>
 </body>
 </html>
