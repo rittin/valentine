@@ -53,13 +53,14 @@
     }
     #yes:active{ transform: scale(0.98); }
     #no{
-      position: fixed; /* float anywhere on screen */
-      left: 50%;
-      top: 62%;
-      transform: translate(-50%, -50%);
-      background: #e9ecef;
-      color: #343a40;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.10);
+    position: fixed;
+    left: 50%;
+    top: 62%;
+    transform: translate(-50%, -50%);
+    background: #e9ecef;
+    color: #343a40;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.10);
+    z-index: 9999; /* <- add this */
     }
     .tiny{
       margin-top: 18px;
