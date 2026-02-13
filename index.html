@@ -2,209 +2,300 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="viewport" content="width=device-width,initial-scale=1, viewport-fit=cover" />
   <title>💘 Valentine?</title>
 
   <style>
-    :root {
-      --bg1: #fff0f6;
-      --bg2: #fff7e6;
-      --text: #2b2b2b;
-      --pink: #ff4d8d;
-    }
-    
+    :root { --bg1:#fff0f6; --bg2:#fff7e6; --text:#2b2b2b; }
     * { box-sizing: border-box; }
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      background: radial-gradient(circle at 50% 30%, var(--bg2), var(--bg1));
+    body{
+      margin:0;
+      min-height:100svh;
+      display:grid;
+      place-items:center;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(circle at 20% 20%, var(--bg2), var(--bg1));
       color: var(--text);
-      overflow: hidden; /* Prevent scrollbars when button moves */
-      touch-action: none; /* Disables double-tap zoom */
+      overflow:hidden;
+      text-align:center;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right)
+               env(safe-area-inset-bottom) env(safe-area-inset-left);
     }
 
-    .card {
-      width: min(600px, 90vw);
-      background: rgba(255, 255, 255, 0.85);
-      border: 1px solid rgba(255, 255, 255, 0.5);
+    .card{
+      width:min(680px, 92vw);
+      background: rgba(255,255,255,0.85);
+      border: 1px solid rgba(0,0,0,0.06);
       border-radius: 24px;
-      padding: 24px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-      backdrop-filter: blur(12px);
-      text-align: center;
+      padding: 16px 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.10);
+      backdrop-filter: blur(8px);
       position: relative;
-      z-index: 10;
+      z-index: 2;
     }
 
-    .photo {
+    .photo{
       width: 100%;
-      height: 280px;
+      max-width: 560px;
+      height: min(34svh, 320px);
       object-fit: cover;
-      border-radius: 16px;
-      margin-bottom: 16px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-      background-color: #ddd; /* Placeholder color */
+      border-radius: 18px;
+      margin: 6px auto 10px;
+      display:block;
+      box-shadow: 0 14px 40px rgba(0,0,0,0.12);
     }
 
-    h1 {
-      margin: 0 0 8px;
-      font-size: clamp(24px, 5vw, 32px);
-      color: #d63384;
+    h1{
+      margin: 4px 0 8px;
+      font-size: clamp(24px, 5.6vw, 44px);
+      line-height: 1.05;
+    }
+    p{
+      margin: 0 0 10px;
+      font-size: 14px;
+      opacity: 0.85;
     }
 
-    p {
-      margin: 0 0 24px;
-      font-size: 16px;
-      opacity: 0.8;
+    .btn-row{
+      display:flex;
+      gap:12px;
+      justify-content:center;
+      flex-wrap:wrap;
+      align-items:center;
+      position:relative;
+      z-index: 5;
+      margin-bottom: 6px;
     }
 
-    .btn-container {
-      display: flex;
-      gap: 16px;
-      justify-content: center;
-      align-items: center;
-      min-height: 60px; /* Reserve space */
+    button, a.btn{
+      border:0;
+      border-radius: 999px;
+      padding: 12px 20px;
+      font-size: 17px;
+      cursor:pointer;
+      user-select:none;
+      touch-action: manipulation;
     }
 
-    /* Common Button Styles */
-    .btn {
-      border: 0;
-      border-radius: 50px;
-      padding: 12px 32px;
-      font-size: 18px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.1s ease;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      -webkit-tap-highlight-color: transparent;
+    a.btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      text-decoration:none;
     }
 
-    /* YES Button */
-    #yes {
-      background: var(--pink);
-      color: white;
-      box-shadow: 0 8px 20px rgba(255, 77, 141, 0.3);
+    #yes{
+      background:#ff4d8d;
+      color:#fff;
+      box-shadow: 0 10px 30px rgba(255,77,141,0.35);
+      transition: transform 120ms ease;
     }
-    #yes:active { transform: scale(0.96); }
+    #yes:active{ transform: scale(0.98); }
 
-    /* NO Button */
-    #no {
-      background: #e9ecef;
-      color: #495057;
-      /* We use fixed positioning when it starts moving */
-      position: relative; 
-      transition: top 0.2s ease, left 0.2s ease;
-      z-index: 20;
-    }
-
-    /* Floating Hearts Background */
-    .heart {
+    /* IMPORTANT:
+       SAFE DEFAULT POSITION (ALWAYS VISIBLE) — NO JS required */
+    #no{
       position: fixed;
-      font-size: 20px;
-      top: -10vh;
-      animation: fall linear forwards;
-      z-index: 0;
-      opacity: 0.6;
+      top: calc(env(safe-area-inset-top) + 16px);
+      right: calc(env(safe-area-inset-right) + 16px);
+      left: auto;
+      bottom: auto;
+
+      transform: none;             /* no translate */
+      background: #e9ecef;
+      color: #343a40;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.10);
+      z-index: 999999;             /* above EVERYTHING */
+      transition: left 120ms ease, top 120ms ease, right 120ms ease;
+      will-change: left, top, right;
     }
-    @keyframes fall {
-      to { transform: translateY(110vh); }
+
+    .tiny{
+      margin-top: 6px;
+      font-size: 12px;
+      opacity: 0.55;
+    }
+
+    /* floating hearts */
+    .heart{
+      position:absolute;
+      font-size: 18px;
+      opacity: 0.28;
+      animation: floatUp linear infinite;
+      user-select:none;
+      pointer-events:none;
+      z-index: 1;
+    }
+    @keyframes floatUp{
+      from { transform: translateY(15svh) scale(0.9); opacity:0; }
+      15% { opacity:0.28; }
+      to { transform: translateY(-120svh) scale(1.2); opacity:0; }
     }
   </style>
 </head>
 
 <body>
-
-  <div class="card">
-    <img class="photo" src="https://images.unsplash.com/photo-1518568814500-bf0f8d125f46?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Cute Valentine" />
-    
+  <div class="card" aria-live="polite">
+    <img class="photo" src="welcome.jpg" alt="Us ❤️" />
     <h1>Will you be my Valentine? 💘</h1>
-    <p>There is only one correct answer...</p>
+    <p>(There is a correct answer. Choose wisely 😄)</p>
 
-    <div class="btn-container">
+    <div class="btn-row">
       <a id="yes" class="btn" href="yes.html">Yes 💖</a>
-      <button id="no" class="btn" type="button">No 🙃</button>
     </div>
+
+    <button id="no" type="button">No 🙃</button>
+
+    <div class="tiny">Tip: try to click “No”. I dare you.</div>
   </div>
 
   <script>
-    const noBtn = document.getElementById('no');
-    const yesBtn = document.getElementById('yes');
-    const padding = 20; // Margin from edges
+    // --- Floating hearts background ---
+    const heartChars = ["💗","💖","💘","💕","💞"];
+    function spawnHeart(){
+      const el = document.createElement("div");
+      el.className = "heart";
+      el.textContent = heartChars[Math.floor(Math.random()*heartChars.length)];
+      el.style.left = Math.random() * 100 + "vw";
+      el.style.bottom = (-10 - Math.random()*20) + "vh";
+      el.style.animationDuration = (7 + Math.random()*9) + "s";
+      el.style.fontSize = (14 + Math.random()*18) + "px";
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 17000);
+    }
+    setInterval(spawnHeart, 420);
+    for(let i=0;i<10;i++) spawnHeart();
 
-    // Function to move the button to a random safe spot
-    function moveButton() {
-      // 1. Get Viewport Dimensions
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
+    const noBtn = document.getElementById("no");
+    const yesBtn = document.getElementById("yes");
 
-      // 2. Get Button Dimensions
-      const btnWidth = noBtn.offsetWidth;
-      const btnHeight = noBtn.offsetHeight;
-
-      // 3. Calculate Safe Boundaries
-      // The button can be placed from x=padding to x=(width - btnWidth - padding)
-      const maxLeft = viewportWidth - btnWidth - padding;
-      const maxTop = viewportHeight - btnHeight - padding;
-
-      // 4. Generate Random Coordinates
-      const randomLeft = Math.max(padding, Math.floor(Math.random() * maxLeft));
-      const randomTop = Math.max(padding, Math.floor(Math.random() * maxTop));
-
-      // 5. Apply Styles
-      // Switch to fixed to break out of the flex container
-      noBtn.style.position = "fixed"; 
-      noBtn.style.left = randomLeft + "px";
-      noBtn.style.top = randomTop + "px";
+    function rectsOverlap(a, b){
+      return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
     }
 
-    // --- Event Listeners ---
+    function viewport(){
+      const vv = window.visualViewport;
+      if (vv && Number.isFinite(vv.width) && Number.isFinite(vv.height)) {
+        return { left: vv.offsetLeft || 0, top: vv.offsetTop || 0, width: vv.width, height: vv.height };
+      }
+      return { left: 0, top: 0, width: document.documentElement.clientWidth, height: document.documentElement.clientHeight };
+    }
 
-    // 1. Desktop: Hover
-    noBtn.addEventListener('mouseenter', moveButton);
+    function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
 
-    // 2. Mobile: Touch start (triggers before click)
-    noBtn.addEventListener('touchstart', (e) => {
-      e.preventDefault(); // Prevent click from firing
-      moveButton();
-    });
+    // Once JS is running, we switch to LEFT/TOP positioning only.
+    function setLeftTop(x, y){
+      noBtn.style.right = "auto";
+      noBtn.style.left  = x + "px";
+      noBtn.style.top   = y + "px";
+      noBtn.style.transform = "none";
+    }
 
-    // 3. Click (Fail-safe: if they somehow click it, move it again)
-    noBtn.addEventListener('click', moveButton);
+    function snapSafe(){
+      // Guaranteed visible corner snap (CSS-like)
+      noBtn.style.left = "auto";
+      noBtn.style.right = "16px";
+      noBtn.style.top = "16px";
+      noBtn.style.bottom = "auto";
+      noBtn.style.transform = "none";
+    }
 
-    // 4. Resize Watchdog
-    // If screen resizes and button is off-screen, reset it
-    window.addEventListener('resize', () => {
-      if (noBtn.style.position === 'fixed') {
-        const rect = noBtn.getBoundingClientRect();
-        if (rect.right > window.innerWidth || rect.bottom > window.innerHeight) {
-          moveButton();
+    function moveNo(){
+      const vp = viewport();
+      const nr = noBtn.getBoundingClientRect();
+      const yr = yesBtn.getBoundingClientRect();
+
+      const pad = 16;
+
+      const minX = vp.left + pad;
+      const maxX = vp.left + vp.width - nr.width - pad;
+      const minY = vp.top + pad;
+      const maxY = vp.top + vp.height - nr.height - pad;
+
+      // No-go zone around YES
+      const noGoPad = 30;
+      const noGo = {
+        left: yr.left - noGoPad,
+        right: yr.right + noGoPad,
+        top: yr.top - noGoPad,
+        bottom: yr.bottom + noGoPad
+      };
+
+      for(let i=0;i<80;i++){
+        const x = clamp(minX + Math.random()*(maxX-minX), minX, maxX);
+        const y = clamp(minY + Math.random()*(maxY-minY), minY, maxY);
+        const cand = { left:x, right:x+nr.width, top:y, bottom:y+nr.height };
+        if(!rectsOverlap(cand, noGo)){
+          setLeftTop(x, y);
+          return;
         }
       }
+
+      // If not found, just snap safe
+      snapSafe();
+    }
+
+    // VISIBILITY CHECK — if it's ever not visible, snap back
+    function isVisible(){
+      const vp = viewport();
+      const r = noBtn.getBoundingClientRect();
+      return (
+        r.width > 0 && r.height > 0 &&
+        r.right > vp.left &&
+        r.left < vp.left + vp.width &&
+        r.bottom > vp.top &&
+        r.top < vp.top + vp.height
+      );
+    }
+
+    // Start: ensure it's visible, then allow movement
+    function stabilize(){
+      if(!isVisible()) snapSafe();
+      moveNo();
+    }
+
+    // Run a few times as layout settles
+    requestAnimationFrame(stabilize);
+    window.addEventListener("load", stabilize);
+
+    const img = document.querySelector(".photo");
+    if (img && !img.complete) img.addEventListener("load", stabilize);
+
+    window.addEventListener("resize", stabilize);
+    if (window.visualViewport){
+      window.visualViewport.addEventListener("resize", stabilize);
+      window.visualViewport.addEventListener("scroll", stabilize);
+    }
+
+    // The watchdog that makes this unbreakable
+    setInterval(() => {
+      if(!isVisible()) snapSafe();
+    }, 200);
+
+    // Move when they try to approach/click
+    const dangerRadius = 140;
+    window.addEventListener("mousemove", (e) => {
+      const r = noBtn.getBoundingClientRect();
+      const bx = r.left + r.width/2;
+      const by = r.top + r.height/2;
+      const dist = Math.hypot(e.clientX - bx, e.clientY - by);
+      if (dist < dangerRadius) moveNo();
     });
 
-    // --- Floating Hearts Animation ---
-    function createHeart() {
-      const heart = document.createElement('div');
-      heart.classList.add('heart');
-      heart.innerHTML = ['❤️', '💖', '💝', '💕', '💗'][Math.floor(Math.random() * 5)];
-      heart.style.left = Math.random() * 100 + 'vw';
-      heart.style.animationDuration = Math.random() * 3 + 2 + 's';
-      heart.style.fontSize = Math.random() * 20 + 10 + 'px';
-      document.body.appendChild(heart);
-      
-      setTimeout(() => heart.remove(), 5000);
-    }
-    setInterval(createHeart, 400);
+    window.addEventListener("touchstart", (e) => {
+      const t = e.touches[0];
+      const r = noBtn.getBoundingClientRect();
+      const near =
+        t.clientX >= r.left - 40 && t.clientX <= r.right + 40 &&
+        t.clientY >= r.top - 40  && t.clientY <= r.bottom + 40;
+      if (near) moveNo();
+    }, { passive: true });
 
+    noBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      moveNo();
+    });
   </script>
 </body>
 </html>
