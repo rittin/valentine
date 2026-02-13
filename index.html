@@ -28,6 +28,14 @@
       position: relative;
       z-index: 2;
     }
+    .photo{
+      width: min(520px, 88vw);
+      height: auto;
+      border-radius: 18px;
+      margin: 10px auto 18px;
+      display: block;
+      box-shadow: 0 14px 40px rgba(0,0,0,0.12);
+    }
 
     h1{ margin: 6px 0 14px; font-size: clamp(28px, 5vw, 44px); }
     p { margin: 0 0 22px; font-size: 16px; opacity: 0.85; }
@@ -118,6 +126,7 @@
 
 <body>
   <div class="card" aria-live="polite">
+    <img class="photo" src="welcome.jpg" alt="Us ❤️" />
     <h1>Will you be my Valentine? 💘</h1>
     <p>(There is a correct answer. Choose wisely 😄)</p>
 
