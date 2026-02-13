@@ -93,11 +93,11 @@
     }
     #yes:active{ transform: scale(0.98); }
 
-    /* NO: roams freely, but we clamp its position to the VISUAL viewport */
+    /* NO: fixed + centered positioning (we clamp its center to stay visible) */
     #no{
       position: fixed;
-      left: 70vw;
-      top: 75svh;
+      left: 70vw;              /* safe initial */
+      top: 72vh;               /* safe initial */
       transform: translate(-50%, -50%);
       background: #e9ecef;
       color: #343a40;
@@ -163,43 +163,44 @@
     setInterval(spawnHeart, 420);
     for(let i=0;i<10;i++) spawnHeart();
 
-    // --- Dodging NO: clamp to the *visible* viewport so it never goes off-screen ---
+    // --- NO logic: roam whole viewport, always visible, NEVER cover YES ---
     const noBtn = document.getElementById("no");
     const yesBtn = document.getElementById("yes");
 
-    function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+    function clamp(n, min, max){
+      if (!Number.isFinite(n)) return min;
+      return Math.max(min, Math.min(max, n));
+    }
+
     function rectsOverlap(a, b){
       return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
     }
 
-    function getVisibleViewport(){
-      // visualViewport accounts for mobile browser chrome + zoom + offsets
+    // Prefer visualViewport if present; otherwise use documentElement client size (more stable on desktop)
+    function getViewport(){
       const vv = window.visualViewport;
-      if (vv) {
-        return {
-          left: vv.offsetLeft,
-          top: vv.offsetTop,
-          width: vv.width,
-          height: vv.height
-        };
+      if (vv && Number.isFinite(vv.width) && Number.isFinite(vv.height)) {
+        return { left: vv.offsetLeft || 0, top: vv.offsetTop || 0, width: vv.width, height: vv.height };
       }
-      return {
-        left: 0,
-        top: 0,
-        width: window.innerWidth,
-        height: window.innerHeight
-      };
+      return { left: 0, top: 0, width: document.documentElement.clientWidth, height: document.documentElement.clientHeight };
+    }
+
+    function placeNoAt(xCenter, yCenter){
+      noBtn.style.left = xCenter + "px";
+      noBtn.style.top  = yCenter + "px";
+      // keep transform translate(-50%, -50%) so left/top are the center point
+      noBtn.style.transform = "translate(-50%, -50%)";
     }
 
     function moveNoButton(){
+      const vp = getViewport();
       const padding = 14;
 
-      const vp = getVisibleViewport();
       const noRect = noBtn.getBoundingClientRect();
       const yesRect = yesBtn.getBoundingClientRect();
 
-      // Expand YES "no-go" zone so No can't sit on/near it
-      const noGoPad = 26;
+      // "No-go" zone around YES (expanded)
+      const noGoPad = 28;
       const noGo = {
         left: yesRect.left - noGoPad,
         right: yesRect.right + noGoPad,
@@ -207,50 +208,75 @@
         bottom: yesRect.bottom + noGoPad,
       };
 
-      // Compute clamped range inside the *visible* viewport
-      const minX = vp.left + padding;
-      const maxX = vp.left + vp.width - noRect.width - padding;
-      const minY = vp.top + padding + 20;        // nudge away from top UI a bit
-      const maxY = vp.top + vp.height - noRect.height - padding - 10;
+      const halfW = Math.max(1, noRect.width / 2);
+      const halfH = Math.max(1, noRect.height / 2);
 
-      for(let i=0; i<60; i++){
+      // Clamp the CENTER of the No button so it's always fully visible
+      const minX = vp.left + padding + halfW;
+      const maxX = vp.left + vp.width - padding - halfW;
+      const minY = vp.top + padding + halfH;
+      const maxY = vp.top + vp.height - padding - halfH;
+
+      // If viewport is too small, force to center
+      if (!(maxX > minX) || !(maxY > minY)) {
+        placeNoAt(vp.left + vp.width * 0.7, vp.top + vp.height * 0.75);
+        return;
+      }
+
+      // Try multiple random spots until it's outside the YES no-go zone
+      for (let i = 0; i < 80; i++) {
         const x = clamp(minX + Math.random() * (maxX - minX), minX, maxX);
         const y = clamp(minY + Math.random() * (maxY - minY), minY, maxY);
 
         const candidate = {
-          left: x,
-          top: y,
-          right: x + noRect.width,
-          bottom: y + noRect.height
+          left: x - halfW,
+          right: x + halfW,
+          top: y - halfH,
+          bottom: y + halfH
         };
 
-        if (!rectsOverlap(candidate, noGo)){
-          noBtn.style.left = x + "px";
-          noBtn.style.top  = y + "px";
-          noBtn.style.transform = "none";
+        if (!rectsOverlap(candidate, noGo)) {
+          placeNoAt(x, y);
           return;
         }
       }
 
-      // Fallback: put it bottom-left within visible viewport
-      noBtn.style.left = minX + "px";
-      noBtn.style.top  = maxY + "px";
-      noBtn.style.transform = "none";
+      // Fallback: bottom-left-ish (still clamped)
+      placeNoAt(minX, maxY);
     }
 
-    // Initial placement after layout
-    requestAnimationFrame(() => moveNoButton());
+    // Make sure it's visible immediately, then re-clamp as layout settles
+    function stabilizePlacement(){
+      // guaranteed visible fallback first
+      const vp = getViewport();
+      placeNoAt(vp.left + vp.width * 0.72, vp.top + vp.height * 0.78);
 
-    // Keep it clamped if the visible viewport changes (mobile address bar show/hide, zoom)
+      // then clamp a few times as the page finishes painting/loading
+      requestAnimationFrame(moveNoButton);
+      setTimeout(moveNoButton, 80);
+      setTimeout(moveNoButton, 250);
+      setTimeout(moveNoButton, 600);
+    }
+
+    // Run on start
+    stabilizePlacement();
+
+    // Run again after the image loads (important on refresh)
+    const img = document.querySelector(".photo");
+    if (img && !img.complete) img.addEventListener("load", stabilizePlacement);
+
+    // Run after everything loads
+    window.addEventListener("load", stabilizePlacement);
+
+    // Re-clamp on viewport changes
     window.addEventListener("resize", moveNoButton);
-    window.addEventListener("scroll", moveNoButton, { passive: true });
     if (window.visualViewport) {
       window.visualViewport.addEventListener("resize", moveNoButton);
       window.visualViewport.addEventListener("scroll", moveNoButton);
     }
 
     // Desktop: move when cursor gets close
-    const dangerRadius = 130;
+    const dangerRadius = 140;
     window.addEventListener("mousemove", (e) => {
       const r = noBtn.getBoundingClientRect();
       const bx = r.left + r.width/2;
@@ -259,7 +285,7 @@
       if (dist < dangerRadius) moveNoButton();
     });
 
-    // Mobile: if finger approaches, it moves
+    // Mobile: move if finger approaches
     window.addEventListener("touchstart", (e) => {
       const t = e.touches[0];
       const r = noBtn.getBoundingClientRect();
